@@ -2,52 +2,60 @@ let centerLat = 37.54667362412562;
 let centerLng = 126.94970599817853;
 
 ////공공데이터
-const API_KEY = "######";
-const url = `http://openapi.seoul.go.kr:8088/${API_KEY}/json/LOCALDATA_072404/1/500/`;
+const API_KEY = "#####";
+const url = `http://openapi.seoul.go.kr:8088/${API_KEY}/json/LOCALDATA_072404/`;
 let zoneList = [];
+const mapo = "마포구";
+let zoneAlive;
+let zoneName;
+let zoneLat;
+let zoneLng;
+let zoneGu;
 
-fetch(url)
-  .then((response) => response.json())
-  .then((data) => {
-    //주소
-    let rows = data.LOCALDATA_072404.row;
-    console.log(rows);
-    const mapo = "종로구";
-    let zoneAlive;
-    let zoneName;
-    let zoneLat;
-    let zoneLng;
-    let zoneList = [];
+for (let i = 1; i < 480000; i += 1) {
+  fetch(url + i + "/" + (i += 998))
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data);
+      //주소
+      let rows = data.LOCALDATA_072404.row;
+      for (let i = 0; i < data.LOCALDATA_072404.row.length; i++) {
+        let test = rows[i].DTLSTATENM;
+        let testArea = rows[i].RDNWHLADDR;
 
-    for (let i = 0; i < data.LOCALDATA_072404.row.length; i++) {
-      let test = rows[i].DTLSTATENM;
-      let testArea = rows[i].RDNWHLADDR;
+        //폐업 여부 필터링
+        if (test != "폐업" && testArea.includes(mapo)) {
+          // && 3조건
+          // 따로따로
+          // 1. 마포구
+          // 2. 폐업
+          // 배열에 저장해놨다가 .. 시간복잡도 빠르게
+          //
+          zoneAlive = rows[i].DTLSTATENM;
+          zoneName = rows[i].BPLCNM;
+          zoneLat = rows[i].X;
+          zoneLng = rows[i].Y;
+          zoneGu = rows[i].RDNWHLADDR;
 
-      //폐업 여부 필터링
-      if (test != "폐업" && testArea.includes(mapo)) {
-        zoneAlive = rows[i].DTLSTATENM;
-        zoneName = rows[i].BPLCNM;
-        zoneLat = rows[i].X;
-        zoneLng = rows[i].Y;
-        zoneGu = rows[i].RDNWHLADDR;
-
-        zoneLocation = {
-          zoneName: zoneName,
-          zoneLat: zoneLat,
-          zoneLng: zoneLng,
-          zoneAlive: zoneAlive,
-          zoneGu: zoneGu,
-        };
-        zoneList.push(zoneLocation);
+          zoneLocation = {
+            zoneAlive: zoneAlive,
+            zoneName: zoneName,
+            zoneLat: zoneLat,
+            zoneLng: zoneLng,
+            zoneGu: zoneGu,
+          };
+          zoneList.push(zoneLocation);
+        }
       }
-    }
-    console.log(zoneList);
-
-    for (let i = 0; i < zoneList.length; i++) {
-      trans(Number(zoneList[i].zoneLat), Number(zoneList[i].zoneLng));
-    }
-  })
-  .catch((error) => console.log(error));
+      console.log(zoneList);
+      for (let i = 0; i < zoneList.length; i++) {
+        trans(Number(zoneList[i].zoneLat), Number(zoneList[i].zoneLng));
+      }
+      //함수
+    })
+    // .then (//함수 )
+    .catch((error) => console.log(error));
+}
 
 var mapContainer = document.getElementById("map"), // 지도를 표시할 div
   mapOption = {
@@ -55,12 +63,12 @@ var mapContainer = document.getElementById("map"), // 지도를 표시할 div
     level: 8, // 지도의 확대 레벨
   };
 
-// 지도를 표시할 div와  지도 옵션으로  지도를 생성합니다
+// 지도를 표시할 div와  지도 옵션으로  지도를 생성
 var map = new kakao.maps.Map(mapContainer, mapOption);
 
 // 지도에 표시할 원을 생성
 var circle = new kakao.maps.Circle({
-  center: new kakao.maps.LatLng(centerLat, centerLng), // 원의 중심좌표햣 (공덕역)
+  center: new kakao.maps.LatLng(centerLat, centerLng), // 원의 중심좌표(공덕역)
   radius: 1000, // 미터 단위의 원의 반지름
   strokeWeight: 2, // 선의 두께
   strokeColor: "#75fa75", // 선의 색깔
@@ -104,9 +112,8 @@ function transCoordCB(result, status) {
       // 선을 구성하는 좌표배열 입니다
       path: linePath,
     });
-    console.log(polyline.getLength());
 
-    if (polyline.getLength() <= 3300) {
+    if (polyline.getLength() <= 1000) {
       // 마커를 변환된 위치에 표시합니다
       var marker = new kakao.maps.Marker({
         position: new kakao.maps.LatLng(result[0].y, result[0].x), // 마커를 표시할 위치입니다
